@@ -1,0 +1,31 @@
+from flask import Flask, request, jsonify
+from PIL import Image
+import pytesseract
+import base64
+import io
+import os  # إضافة مكتبة os للحصول على المنفذ من البيئة
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Captcha Solver API is running."
+
+@app.route('/solve', methods=['POST'])
+def solve():
+    data = request.get_json()
+    if not data or 'image' not in data:
+        return jsonify({'error': 'No image provided'}), 400
+
+    try:
+        image_data = base64.b64decode(data['image'])
+        image = Image.open(io.BytesIO(image_data))
+        result = pytesseract.image_to_string(image, config='--psm 8 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+        return jsonify({'result': result.strip()})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    # تعديل هنا لقراءة المنفذ من البيئة
+    port = int(os.environ.get('PORT', 8080))  # إذا لم يتم تحديده، سيعمل على المنفذ 8080
+    app.run(host='0.0.0.0', port=port)
